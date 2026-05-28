@@ -16,9 +16,11 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <manifestEntries>
-                <Main-Class>kz.senimwiki.bot.Main</Main-Class>
-              </manifestEntries>
+              <transformers>
+                <transformer>
+                  <mainClass>org.example.Main</mainClass>
+                </transformer>
+              </transformers>
             </configuration>
           </execution>
         </executions>
