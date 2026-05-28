@@ -443,16 +443,47 @@ public class SenimWikiBot extends TelegramLongPollingBot {
     }
 
     private void submitReport(long chatId, long userId, Report report) {
-        send(chatId, t(userId, "report_done"), true);
+        this.send(chatId, this.t(userId, "report_done"), true);
 
+        // 1. Админу в Telegram
         SendMessage adminMsg = new SendMessage();
-        adminMsg.setChatId(adminChatId);
+        adminMsg.setChatId(this.adminChatId);
         adminMsg.setText(report.toAdminMessage());
         adminMsg.setParseMode("Markdown");
-        try { execute(adminMsg); } catch (TelegramApiException e) { e.printStackTrace(); }
+        try {
+            this.execute(adminMsg);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
 
-        userState.remove(userId);
-        pendingReports.remove(userId);
+        // 2. На сайт через API
+        new Thread(() -> {
+            try {
+                String name = report.getOrgName() != null ? report.getOrgName() : "Telegram: @" + report.getUsername();
+                String contact = report.getContactInfo() != null ? report.getContactInfo() : "не указан";
+                String type = report.getType() != null ? report.getType().getLabel() : "OTHER";
+                String desc = "[" + type + "] " + (report.getDescription() != null ? report.getDescription() : "");
+
+                String json = "{\"name\":\"" + jsonEscape(name) + "\","
+                        + "\"email\":\"" + jsonEscape(contact) + "\","
+                        + "\"message\":\"" + jsonEscape(desc) + "\"}";
+
+                HttpRequest req = HttpRequest.newBuilder()
+                        .uri(URI.create(API_BASE + "/api/contact-reports"))
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+
+                HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+                System.out.println("Репорт отправлен на сайт: " + resp.statusCode());
+
+            } catch (Exception e) {
+                System.err.println("Ошибка отправки репорта на сайт: " + e.getMessage());
+            }
+        }).start();
+
+        this.userState.remove(userId);
+        this.pendingReports.remove(userId);
     }
 
     private void cancelAll(long chatId, long userId) {
