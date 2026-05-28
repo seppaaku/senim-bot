@@ -1,0 +1,6 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "deploy": {
+    "startCommand": "java -jar target/senimwikibot-1.0-SNAPSHOT.jar"
+  }
+}
