@@ -22,7 +22,6 @@ public class SenimWikiBot extends TelegramLongPollingBot {
     private final String adminChatId;
 
     private static final String API_BASE = "https://senim-backend-production.up.railway.app";
-
     // Состояния
     private final Map<Long, String>  userState      = new HashMap<>();
     private final Map<Long, Report>  pendingReports = new HashMap<>();
@@ -459,14 +458,15 @@ public class SenimWikiBot extends TelegramLongPollingBot {
         // 2. На сайт через API
         new Thread(() -> {
             try {
-                String name = report.getOrgName() != null ? report.getOrgName() : "Telegram: @" + report.getUsername();
+                String name    = report.getOrgName() != null ? report.getOrgName() : "Telegram: @" + report.getUsername();
                 String contact = report.getContactInfo() != null ? report.getContactInfo() : "не указан";
-                String type = report.getType() != null ? report.getType().getLabel() : "OTHER";
-                String desc = "[" + type + "] " + (report.getDescription() != null ? report.getDescription() : "");
+                String type    = report.getType() != null ? report.getType().getLabel() : "OTHER";
+                String desc    = "[" + type + "] " + (report.getDescription() != null ? report.getDescription() : "");
 
-                String json = "{\"name\":\"" + jsonEscape(name) + "\","
-                        + "\"email\":\"" + jsonEscape(contact) + "\","
-                        + "\"message\":\"" + jsonEscape(desc) + "\"}";
+                // Используем jsonEscapeValue — без внешних кавычек
+                String json = "{\"name\":\""    + jsonEscapeValue(name)    + "\","
+                        + "\"email\":\""   + jsonEscapeValue(contact) + "\","
+                        + "\"message\":\"" + jsonEscapeValue(desc)    + "\"}";
 
                 HttpRequest req = HttpRequest.newBuilder()
                         .uri(URI.create(API_BASE + "/api/contact-reports"))
@@ -475,17 +475,20 @@ public class SenimWikiBot extends TelegramLongPollingBot {
                         .build();
 
                 HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-                System.out.println("Репорт отправлен на сайт: " + resp.statusCode());
+                System.out.println("Репорт: " + resp.statusCode() + " | " + resp.body());
 
             } catch (Exception e) {
-                System.err.println("Ошибка отправки репорта на сайт: " + e.getMessage());
+                System.err.println("Ошибка: " + e.getMessage());
             }
         }).start();
-
-        this.userState.remove(userId);
-        this.pendingReports.remove(userId);
     }
-
+    private String jsonEscapeValue(String text) {
+        return text
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
+    }
     private void cancelAll(long chatId, long userId) {
         userState.remove(userId);
         pendingReports.remove(userId);
