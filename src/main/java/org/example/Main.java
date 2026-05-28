@@ -8,7 +8,7 @@ public class Main {
         // Читаем переменные из Railway (Environment Variables)
         String botToken = System.getenv("BOT_TOKEN");
         String adminChatId = System.getenv("ADMIN_CHAT_ID");
-
+//test
         // Проверка — чтобы сразу видеть ошибку если переменные не заданы
         if (botToken == null || botToken.isEmpty()) {
             System.err.println("Ошибка: BOT_TOKEN не задан!");
